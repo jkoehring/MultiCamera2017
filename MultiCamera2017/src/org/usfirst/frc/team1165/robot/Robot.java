@@ -18,28 +18,29 @@ import edu.wpi.first.wpilibj.Utility;
 public class Robot extends IterativeRobot {
 	
 	private boolean oldUserState;
-	private int camera = 0;
+	private int usbCameraIndex = 0;
 	private CameraServer cameraServer;
+	private UsbCamera usbCameras[];
 	
 	@Override
-	public void robotInit() {
+	public void robotInit()
+	{
 		cameraServer = CameraServer.getInstance();
 		
-		CameraServer.getInstance().startAutomaticCapture(camera);
-		oldUserState = false;
-		
 		UsbCameraInfo infos[] = UsbCamera.enumerateUsbCameras();
-		for (UsbCameraInfo info : infos)
+		usbCameras = new UsbCamera[infos.length];
+		for (int i = 0; i < usbCameras.length; i++)
 		{
-			System.out.println(info.dev + ": " + info.name);
+			usbCameras[i] = new UsbCamera("USB", infos[i].path);
+			usbCameras[i].setResolution(640, 480);
+			usbCameras[i].setFPS(10);
+			System.out.println("Created USB camera: " + usbCameras[i].getPath());
+			CameraServer.getInstance().startAutomaticCapture(usbCameras[i]);
 		}
-		/**
-		VideoSource sources[] = VideoSource.enumerateSources();
-		for (VideoSource source : sources)
-		{
-			System.out.println(source.getName());
-		}
-		**/
+		
+		//CameraServer.getInstance().startAutomaticCapture(usbCameras[0]);
+
+		oldUserState = false;
 	}
 
 	/**
@@ -53,8 +54,14 @@ public class Robot extends IterativeRobot {
 			oldUserState = newUserState;
 			if (oldUserState)
 			{
-				camera ^= 1;
-				CameraServer.getInstance().startAutomaticCapture(camera);
+				CameraServer.getInstance().removeServer("serve_USB");
+				if (++usbCameraIndex >= usbCameras.length)
+				{
+					usbCameraIndex = 0;
+				}
+				System.out.println("Switching to USB camera " + usbCameraIndex);
+				CameraServer.getInstance().startAutomaticCapture(usbCameras[usbCameraIndex]);
+		
 			}
 		}
 	}
